@@ -18,21 +18,36 @@ exports.registerUser = async (req, res) => {
 // Login
 exports.loginUser = async (req, res) => {
     const { email, password } = req.body;
+    const adminEmail = process.env.ADMIN_EMAIL;
+
 
     try {
         const user = await db.oneOrNone('SELECT * FROM users WHERE email = $1', [email]);
 
+
         if (!user) {
             return res.status(401).json({ error: 'Invalid email or password' });
         }
+
 
         const isMatch = await bcrypt.compare(password, user.password);
         if (!isMatch) {
             return res.status(401).json({ error: 'Invalid email or password' });
         }
 
+
         req.session.user = { id: user.id, name: user.name, email: user.email };
-        res.redirect('/home');  // Corrected the redirect
+
+
+        // Redirect based on role
+        if (user.email === adminEmail) {
+            return res.redirect('/admin/dashboard');
+        }
+
+
+        res.redirect('/home');
+
+
     } catch (err) {
         res.status(500).json({ error: 'Error logging in' });
     }
